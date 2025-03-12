@@ -147,7 +147,7 @@ const Index = () => {
                   </div>
                   {showPrivateKey === key.id && (
                     <div className='mt-2 p-2 bg-zinc-200 dark:bg-zinc-700 rounded overflow-x-auto'>
-                      <code className='text-xs text-zinc-800 dark:text-zinc-200'>{bytesToHex(key.privateKey)}</code>
+                      <code className='text-xs text-zinc-800 dark:text-zinc-200'>{key.privateKey}</code>
                     </div>
                   )}
                 </li>

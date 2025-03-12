@@ -4,6 +4,8 @@ import '@/styles/globals.css'
 import { NDKProvider } from "@nostr-dev-kit/ndk-react";
 import { createContext, useState, useEffect } from 'react';
 import { generateSecretKey, getPublicKey } from 'nostr-tools/pure'
+import * as nip19 from 'nostr-tools/nip19'
+import { useNDK } from '@nostr-dev-kit/ndk-react';
 
 // Interface for stored keys
 interface StoredKey {
@@ -62,6 +64,10 @@ export default function App({ Component, pageProps }: AppProps) {
   const [activeKeyId, setActiveKeyId] = useState<string | null>(null);
   const [isKeysLoaded, setIsKeysLoaded] = useState(false);
 
+  // Get Signer from ndk 
+  // const { loginWithSecret } = useNDK();
+  // const user = await loginWithSecret(activeKey?.privateKey);
+
   // Load saved relay URLs from localStorage on initial render
   useEffect(() => {
     try {
@@ -83,12 +89,17 @@ export default function App({ Component, pageProps }: AppProps) {
       const savedKeys = localStorage.getItem('storedKeys');
       const activeKey = localStorage.getItem('activeKeyId');
       
+      console.log(JSON.parse(savedKeys))
+      console.log(activeKey)
       if (savedKeys) {
         setKeys(JSON.parse(savedKeys));
+        console.log("saved keys")
+        console.log(keys)
       }
-      
       if (activeKey) {
         setActiveKeyId(activeKey);
+        console.log("active key true")
+        console.log(activeKeyId);
       }
     } catch (error) {
       console.error("Error loading saved keys:", error);
@@ -155,8 +166,9 @@ export default function App({ Component, pageProps }: AppProps) {
   // Function to generate a new random key
   const generateNewKey = () => {
     const newPrivateKey = generateRandomKey();
-	const publicKey = getPublicKey(newPrivateKey);
-    addKey(newPrivateKey, publicKey);
+	  const publicKey = getPublicKey(newPrivateKey);
+    let nsec = nip19.nsecEncode(newPrivateKey);
+    addKey(nsec, publicKey);
   };
 
   // Get the active private key for the NDK provider
@@ -186,7 +198,6 @@ export default function App({ Component, pageProps }: AppProps) {
           {isLoaded && (
             <NDKProvider 
               relayUrls={relayUrls}
-            //   explicitSigner={getActiveKey()}
             >
               <Component {...pageProps} />
             </NDKProvider>

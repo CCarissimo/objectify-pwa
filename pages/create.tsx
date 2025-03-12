@@ -199,15 +199,16 @@ const CreateListing = () => {
       // Set pubkey (note: in a real app, you'd use NDK's signer)
       // For this example, we'll just set it directly
       // event.pubkey = activeKey.privateKey;
-
+      console.log("active pk")
       console.log(activeKey.privateKey);
-      console.log(bytesToHex(activeKey.privateKey));
-      let nsec = nip19.nsecEncode(activeKey.privateKey);
-      console.log(nsec);
-      const user = await loginWithSecret(nsec);
-      
+      // console.log(bytesToHex(activeKey.privateKey));
+      // let nsec = nip19.nsecEncode(activeKey.privateKey);
+      // const user = await loginWithSecret(activeKey.privateKey);
+      // console.log("signer result")
+      // console.log(user)
+      // console.log(ndk.signer)
+      // console.log(ndk)
       // Sign and publish the event
-      // const { signPublishEvent } = useNDK();
       const publishedEvent = await signPublishEvent(event);
 
       // setEventId(publishedEvent.id);
