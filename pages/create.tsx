@@ -203,11 +203,12 @@ const CreateListing = () => {
       console.log(activeKey.privateKey);
       // console.log(bytesToHex(activeKey.privateKey));
       // let nsec = nip19.nsecEncode(activeKey.privateKey);
-      // const user = await loginWithSecret(activeKey.privateKey);
-      // console.log("signer result")
-      // console.log(user)
-      // console.log(ndk.signer)
-      // console.log(ndk)
+      const user = await loginWithSecret(activeKey.privateKey);
+      console.log("signer result")
+      console.log(user)
+      console.log(ndk.signer)
+      console.log(ndk)
+      console.log(event)
       // Sign and publish the event
       const publishedEvent = await signPublishEvent(event);
 
