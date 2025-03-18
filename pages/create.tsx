@@ -5,8 +5,14 @@ import { KeyContext } from './_app';
 import { useRouter } from 'next/router';
 import { useNDK } from '@nostr-dev-kit/ndk-react';
 import { NDKEvent } from '@nostr-dev-kit/ndk';
-import { bytesToHex, hexToBytes } from '@noble/hashes/utils' // already an installed dependency
-import * as nip19 from 'nostr-tools/nip19'
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils'; // already an installed dependency
+import * as nip19 from 'nostr-tools/nip19';
+import { finalizeEvent, verifyEvent } from 'nostr-tools/pure';
+import { SimplePool } from 'nostr-tools/pool';
+// import nip19 from 'nostr-tools';
+import CameraCapture from '@/components/cameraCapture';
+import NostrImageUploader from '@/components/nostrImageUploader';
+
 
 // Interface for the form data
 interface ListingFormData {
@@ -26,33 +32,26 @@ interface ListingFormData {
   }[];
 }
 
-// Currency options
-const currencies = [
-  { code: 'USD', name: 'US Dollar' },
-  { code: 'EUR', name: 'Euro' },
-  { code: 'GBP', name: 'British Pound' },
-  { code: 'JPY', name: 'Japanese Yen' },
-  { code: 'CAD', name: 'Canadian Dollar' },
-  { code: 'AUD', name: 'Australian Dollar' },
-  { code: 'BTC', name: 'Bitcoin' },
-  { code: 'ETH', name: 'Ethereum' },
-  { code: 'SATS', name: 'Satoshis' },
-];
+// Define the type for tags (arrays of strings)
+type Tag = string[];
 
-// Frequency options for recurring prices
-const frequencies = [
-  { value: '', label: 'One-time payment' },
-  { value: 'hour', label: 'Per hour' },
-  { value: 'day', label: 'Per day' },
-  { value: 'week', label: 'Per week' },
-  { value: 'month', label: 'Per month' },
-  { value: 'year', label: 'Per year' },
-];
+// Define the event interface
+interface NostrEvent {
+  kind: number;
+  created_at: number;
+  tags: string[];
+  content: string;
+}
 
 const CreateListing = () => {
   const { keys, activeKeyId } = useContext(KeyContext);
-  const router = useRouter();
-  const { ndk, loginWithSecret, signPublishEvent } = useNDK();
+  // Get active key
+  const activeKey = keys.find(k => k.id === activeKeyId);
+  if (!activeKey) {
+    throw new Error('No active key selected. Please select a key before publishing.');
+  };
+
+  const sampleTags = ["freezer", "give-away", "unknown"];
 
   // State for the form data
   const [formData, setFormData] = useState<ListingFormData>({
@@ -78,13 +77,18 @@ const CreateListing = () => {
   const [eventId, setEventId] = useState<string | null>(null);
 
   // For tag input handling
-  const addTag = () => {
+  const addTag = (tag) => {
     if (newTag && !formData.tags.includes(newTag)) {
       setFormData(prev => ({
         ...prev,
         tags: [...prev.tags, newTag]
       }));
       setNewTag('');
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, tag]
+      }));
     }
   };
 
@@ -138,6 +142,53 @@ const CreateListing = () => {
     }
   };
 
+  // Handle Camera Capture
+  const [capturedImage, setCapturedImage] = useState(null);  
+  const handleImageCapture = (imageData) => {
+    setCapturedImage(imageData);
+    // Here you could upload the image to your server or process it further
+    console.log('Image captured:', imageData.substring(0, 50) + '...');
+  };
+
+  // Add this state to track the upload result
+  const [uploadResult, setUploadResult] = useState<{
+    success: boolean;
+    url?: string;
+    message?: string;
+  } | null>(null);
+
+  // Add this handler for upload completion
+  const handleUploadComplete = (success: boolean, data?: any, error?: string) => {
+    if (success) {
+      console.log("setting image to form data")
+      // Find the URL tag from the response
+      const imageUrl = data.url;
+      
+      setUploadResult({
+        success: true,
+        url: imageUrl,
+        message: 'Image uploaded successfully!'
+      });
+      
+      // Add the uploaded image to your form data
+      if (imageUrl) {
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, {
+            url: imageUrl,
+            dimensions: '800x600' // You might want to get the actual dimensions
+          }]
+        }));
+        console.log(formData)
+      }
+    } else {
+      setUploadResult({
+        success: false,
+        message: error || 'Upload failed'
+      });
+    }
+  };
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,28 +197,24 @@ const CreateListing = () => {
     setSuccess(false);
     
     try {
-      // Get active key
-      const activeKey = keys.find(k => k.id === activeKeyId);
-      if (!activeKey) {
-        throw new Error('No active key selected. Please select a key before publishing.');
-      }
-      
-      if (!ndk) {
-        throw new Error('NDK not initialized. Please check your connection.');
-      }
 
-      // Create new Nostr event
-      const event = new NDKEvent(ndk);
+      console.log("active nsec");
+      console.log(activeKey.nsec);
+      console.log(activeKey.privateKey)
+      // let { type, sk } = nip19.decode(activeKey.nsec)
+      let sk = activeKey.privateKey
+      console.log(sk)
       
-      // Set the kind
-      event.kind = 30402;
-      
-      // Set the content
-      event.content = formData.content;
-      
+      let newEvent: NostrEvent = {
+        kind: 30402,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [],
+        content: formData.content,
+      };
+  
       // Set the tags
-      event.tags = [
-        ['d', formData.title.toLowerCase().replace(/\s+/g, '-')], // d tag for unique identifier
+      newEvent.tags = [
+        ['d', formData.title.toLowerCase().replace(/\s+/g, '-')],
         ['title', formData.title],
         ['published_at', Math.floor(Date.now() / 1000).toString()],
         ['summary', formData.summary],
@@ -180,39 +227,51 @@ const CreateListing = () => {
         if (formData.price.frequency) {
           priceTag.push(formData.price.frequency);
         }
-        event.tags.push(priceTag);
-      }
+        newEvent.tags.push(priceTag);
+      };
       
       // Add category/hashtags
       formData.tags.forEach(tag => {
-        event.tags.push(['t', tag]);
+        newEvent.tags.push(['t', tag]);
       });
       
       // Add images
       formData.images.forEach(image => {
-        event.tags.push(['image', image.url, image.dimensions]);
+        newEvent.tags.push(['image', image.url, image.dimensions]);
       });
 
       // Add status tag
-      event.tags.push(['status', 'active']);
+      newEvent.tags.push(['status', 'active']);
       
-      // Set pubkey (note: in a real app, you'd use NDK's signer)
-      // For this example, we'll just set it directly
-      // event.pubkey = activeKey.privateKey;
-      console.log("active pk")
-      console.log(activeKey.privateKey);
-      // console.log(bytesToHex(activeKey.privateKey));
-      // let nsec = nip19.nsecEncode(activeKey.privateKey);
-      const user = await loginWithSecret(activeKey.privateKey);
-      console.log("signer result")
-      console.log(user)
-      console.log(ndk.signer)
-      console.log(ndk)
-      console.log(event)
-      // Sign and publish the event
-      const publishedEvent = await signPublishEvent(event);
+      let signedEvent = finalizeEvent(newEvent, sk);
+      let isGood = verifyEvent(signedEvent);
 
-      // setEventId(publishedEvent.id);
+      console.log(signedEvent)
+      console.log(isGood)
+
+      // connect to relays and publish
+      const pool = new SimplePool();
+      let relays = [
+        "wss://nostr.wine",
+        "wss://relay.nostr.band",
+        "wss://relay.damus.io",
+        ];
+      
+      // await Promise.any(pool.publish(relays, signedEvent));
+      try {
+        await Promise.any(pool.publish(relays, signedEvent));
+      } catch (error) {
+        // AggregateError contains an array of the individual errors
+        if (error instanceof AggregateError) {
+          console.error("All promises rejected with the following errors:");
+          error.errors.forEach((err, index) => {
+            console.error(`Relay ${index}: ${err.message}`);
+          });
+        } else {
+          console.error("Unexpected error:", error);
+        }
+      } 
+
       setSuccess(true);
       
       // Optional: Navigate to a success page or listing detail
@@ -221,6 +280,7 @@ const CreateListing = () => {
     } catch (err) {
       console.error('Error publishing event:', err);
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      console.log(error)
     } finally {
       setIsSubmitting(false);
     }
@@ -229,7 +289,7 @@ const CreateListing = () => {
   return (
     <Page>
       <Section>
-        <h2 className='text-xl font-semibold text-zinc-800 dark:text-zinc-200'>
+        {/* <h2 className='text-xl font-semibold text-zinc-800 dark:text-zinc-200'>
           Create Classified Listing
         </h2>
         
@@ -237,7 +297,7 @@ const CreateListing = () => {
           <p className='text-zinc-600 dark:text-zinc-400'>
             Create a new classified listing on the Nostr network
           </p>
-        </div>
+        </div> */}
         
         {/* Success message */}
         {success && (
@@ -259,6 +319,105 @@ const CreateListing = () => {
         )}
         
         <form onSubmit={handleSubmit} className='mt-6 space-y-6'>
+          {/* Images */}
+          <div className='p-4 bg-zinc-100 dark:bg-zinc-800 rounded'>
+            <h3 className='text-md font-semibold text-zinc-800 dark:text-zinc-200'>
+              Images
+            </h3>
+            
+            <div className='mt-2 space-y-2'>
+              {/* <div className='flex gap-2'>
+                <input
+                  type='text'
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  className='flex-grow p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
+                  placeholder='Image URL'
+                />
+                <input
+                  type='text'
+                  value={newImageDimensions}
+                  onChange={(e) => setNewImageDimensions(e.target.value)}
+                  className='w-32 p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
+                  placeholder='Dimensions (e.g., 800x600)'
+                />
+                <button
+                  type='button'
+                  onClick={addImage}
+                  className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+                >
+                  Add
+                </button>
+              </div> */}
+              
+              {/* <div className='mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4'>
+                {formData.images.map((image, index) => (
+                  <div key={index} className='border rounded dark:border-zinc-700 overflow-hidden'>
+                    <div className='aspect-w-16 aspect-h-9 bg-zinc-200 dark:bg-zinc-700 relative'>
+                      <img
+                        src={image.url}
+                        alt={`Listing image ${index + 1}`}
+                        className='object-cover w-full h-full'
+                        onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/300x200?text=Image+Error')}
+                      />
+                      <button
+                        type='button'
+                        onClick={() => removeImage(image.url)}
+                        className='absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600'
+                      >
+                        &times;
+                      </button>
+                    </div>
+                    <div className='p-2 text-sm text-zinc-600 dark:text-zinc-400'>
+                      Dimensions: {image.dimensions}
+                    </div>
+                  </div>
+                ))}
+                {formData.images.length === 0 && (
+                  <div className='col-span-full text-zinc-500 dark:text-zinc-400 text-sm'>
+                    No images added yet
+                  </div>
+                )}
+              </div> */}
+              <div className="container mx-auto p-4">
+                <h3 className="text-2xl font-bold mb-4">Upload Image</h3>
+                  <CameraCapture onCapture={handleImageCapture} />
+                  {capturedImage && (
+                    <div className="mt-4">
+                      <h4 className="text-xl mb-2">Captured Image:</h4>
+                      <img 
+                        src={capturedImage} 
+                        alt="Captured" 
+                        className="max-w-full h-auto rounded border"
+                      />
+                      
+                      {/* Add the uploader component */}
+                      <NostrImageUploader
+                        imageData={capturedImage}
+                        pubkey={activeKey.name}
+                        privateKey={activeKey.privateKey}
+                        onComplete={handleUploadComplete}
+                      />
+                      
+                      {/* Show upload result message */}
+                      {uploadResult && (
+                        <div className={`mt-2 p-2 rounded ${uploadResult.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {uploadResult.message}
+                          {uploadResult.url && (
+                            <div className="mt-1 text-sm">
+                              <a href={uploadResult.url} target="_blank" rel="noopener noreferrer" className="underline">
+                                View uploaded image
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+              </div>
+            </div>
+          </div>
+          
           {/* Basic Information */}
           <div className='space-y-4'>
             <div>
@@ -277,7 +436,7 @@ const CreateListing = () => {
               />
             </div>
             
-            <div>
+            {/* <div>
               <label htmlFor='summary' className='block text-sm font-medium text-zinc-700 dark:text-zinc-300'>
                 Summary
               </label>
@@ -287,13 +446,13 @@ const CreateListing = () => {
                 name='summary'
                 value={formData.summary}
                 onChange={handleChange}
-                required
+                // required
                 className='mt-1 block w-full p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
                 placeholder='Short description (tagline)'
               />
-            </div>
+            </div> */}
             
-            <div>
+            {/* <div>
               <label htmlFor='content' className='block text-sm font-medium text-zinc-700 dark:text-zinc-300'>
                 Description (Markdown supported)
               </label>
@@ -302,12 +461,12 @@ const CreateListing = () => {
                 name='content'
                 value={formData.content}
                 onChange={handleChange}
-                required
+                // required
                 rows={6}
                 className='mt-1 block w-full p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
                 placeholder='Detailed description of what you are listing...'
               />
-            </div>
+            </div> */}
             
             <div>
               <label htmlFor='location' className='block text-sm font-medium text-zinc-700 dark:text-zinc-300'>
@@ -320,7 +479,7 @@ const CreateListing = () => {
                 value={formData.location}
                 onChange={handleChange}
                 className='mt-1 block w-full p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
-                placeholder='City, Country'
+                placeholder='Paradies, 8001'
               />
             </div>
           </div>
@@ -394,7 +553,22 @@ const CreateListing = () => {
             <h3 className='text-md font-semibold text-zinc-800 dark:text-zinc-200'>
               Tags/Categories
             </h3>
-            
+
+            {/* Sample Tags */}
+            <div className='mt-2 flex flex-wrap gap-2'>
+              {sampleTags.map((tag) => (
+                <button
+                  key={tag}
+                  type='button'
+                  onClick={() => addTag(tag)}
+                  className='px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+
+            {/* Input Field for Custom Tags */}
             <div className='mt-2 flex gap-2'>
               <input
                 type='text'
@@ -405,13 +579,14 @@ const CreateListing = () => {
               />
               <button
                 type='button'
-                onClick={addTag}
+                onClick={() => addTag(newTag)}
                 className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
               >
                 Add
               </button>
             </div>
-            
+
+            {/* Display Selected Tags */}
             <div className='mt-4 flex flex-wrap gap-2'>
               {formData.tags.map((tag) => (
                 <span
@@ -433,69 +608,6 @@ const CreateListing = () => {
                   No tags added yet
                 </span>
               )}
-            </div>
-          </div>
-          
-          {/* Images */}
-          <div className='p-4 bg-zinc-100 dark:bg-zinc-800 rounded'>
-            <h3 className='text-md font-semibold text-zinc-800 dark:text-zinc-200'>
-              Images
-            </h3>
-            
-            <div className='mt-2 space-y-2'>
-              <div className='flex gap-2'>
-                <input
-                  type='text'
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  className='flex-grow p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
-                  placeholder='Image URL'
-                />
-                <input
-                  type='text'
-                  value={newImageDimensions}
-                  onChange={(e) => setNewImageDimensions(e.target.value)}
-                  className='w-32 p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
-                  placeholder='Dimensions (e.g., 800x600)'
-                />
-                <button
-                  type='button'
-                  onClick={addImage}
-                  className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
-                >
-                  Add
-                </button>
-              </div>
-              
-              <div className='mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4'>
-                {formData.images.map((image, index) => (
-                  <div key={index} className='border rounded dark:border-zinc-700 overflow-hidden'>
-                    <div className='aspect-w-16 aspect-h-9 bg-zinc-200 dark:bg-zinc-700 relative'>
-                      <img
-                        src={image.url}
-                        alt={`Listing image ${index + 1}`}
-                        className='object-cover w-full h-full'
-                        onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/300x200?text=Image+Error')}
-                      />
-                      <button
-                        type='button'
-                        onClick={() => removeImage(image.url)}
-                        className='absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600'
-                      >
-                        &times;
-                      </button>
-                    </div>
-                    <div className='p-2 text-sm text-zinc-600 dark:text-zinc-400'>
-                      Dimensions: {image.dimensions}
-                    </div>
-                  </div>
-                ))}
-                {formData.images.length === 0 && (
-                  <div className='col-span-full text-zinc-500 dark:text-zinc-400 text-sm'>
-                    No images added yet
-                  </div>
-                )}
-              </div>
             </div>
           </div>
           
@@ -541,141 +653,3 @@ const CreateListing = () => {
 };
 
 export default CreateListing;
-
-// import Page from '@/components/page'
-// import Section from '@/components/section'
-// import React, { useState } from 'react';
-// import { FiCamera, FiMapPin, FiUpload, FiCheck, FiEdit3 } from 'react-icons/fi';
-
-// const CreatePostForm = () => {
-//   const [content, setContent] = useState('');
-//   const [pubkey, setPubkey] = useState('');
-//   const [images, setImages] = useState('');
-//   const [description, setDescription] = useState('');
-//   const [location, setLocation] = useState('');
-
-//   const handleSubmit = (e: React.FormEvent) => {
-//     e.preventDefault();
-//     // Handle form submission logic here
-//     console.log({ content, pubkey, images, description, location });
-//   };
-
-//   return (
-//     <form onSubmit={handleSubmit} className="space-y-6">
-//       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-//         {/* Image Upload Section */}
-//         <div className="col-span-full">
-//           <label className="flex flex-col items-center justify-center h-48 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border-2 border-dashed border-blue-200 cursor-pointer hover:border-blue-300 transition-colors">
-//             <div className="text-center space-y-2">
-//               <FiCamera className="w-8 h-8 text-blue-400 mx-auto" />
-//               <span className="text-blue-600 font-medium">Add Photos</span>
-//               <p className="text-sm text-gray-500">PNG, JPG up to 10MB</p>
-//             </div>
-//             <input
-//               type="text"
-//               value={images}
-//               onChange={(e) => setImages(e.target.value)}
-//               className="hidden"
-//               placeholder="Paste image URLs here"
-//             />
-//           </label>
-//         </div>
-
-//         {/* Content Field */}
-//         <div className="col-span-full relative">
-//           <textarea
-//             value={content}
-//             onChange={(e) => setContent(e.target.value)}
-//             className="w-full px-4 py-3 bg-transparent border-2 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-100 peer placeholder-transparent"
-//             placeholder=" "
-//             required
-//           />
-//           <label className="absolute left-4 -top-3 px-1 bg-white dark:bg-zinc-900 text-gray-500 text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-3 peer-focus:-top-3 peer-focus:text-sm peer-focus:text-blue-600">
-//             <FiEdit3 className="inline mr-2" /> Story Content
-//           </label>
-//         </div>
-
-//         {/* Description Field */}
-//         <div className="col-span-full relative">
-//           <textarea
-//             value={description}
-//             onChange={(e) => setDescription(e.target.value)}
-//             className="w-full px-4 py-3 bg-transparent border-2 rounded-xl focus:border-purple-400 focus:ring-2 focus:ring-purple-100 peer placeholder-transparent"
-//             placeholder=" "
-//           />
-//           <label className="absolute left-4 -top-3 px-1 bg-white dark:bg-zinc-900 text-gray-500 text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-3 peer-focus:-top-3 peer-focus:text-sm peer-focus:text-purple-600">
-//             ✨ Description
-//           </label>
-//         </div>
-
-//         {/* Location Field */}
-//         <div className="relative">
-//           <input
-//             type="text"
-//             value={location}
-//             onChange={(e) => setLocation(e.target.value)}
-//             className="w-full px-4 py-3 pl-10 bg-transparent border-2 rounded-xl focus:border-green-400 focus:ring-2 focus:ring-green-100 peer placeholder-transparent"
-//             placeholder=" "
-//           />
-//           <FiMapPin className="absolute left-3 top-4 text-gray-400 peer-focus:text-green-500" />
-//           <label className="absolute left-10 -top-3 px-1 bg-white dark:bg-zinc-900 text-gray-500 text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-3 peer-focus:-top-3 peer-focus:text-sm peer-focus:text-green-600">
-//             Where was this?
-//           </label>
-//         </div>
-
-//         {/* Pubkey Field */}
-//         <div className="relative">
-//           <input
-//             type="text"
-//             value={pubkey}
-//             onChange={(e) => setPubkey(e.target.value)}
-//             className="w-full px-4 py-3 bg-transparent border-2 rounded-xl focus:border-orange-400 focus:ring-2 focus:ring-orange-100 peer placeholder-transparent"
-//             placeholder=" "
-//             required
-//           />
-//           <label className="absolute left-4 -top-3 px-1 bg-white dark:bg-zinc-900 text-gray-500 text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-3 peer-focus:-top-3 peer-focus:text-sm peer-focus:text-orange-600">
-//             🔑 Your Public Key
-//           </label>
-//         </div>
-//       </div>
-
-//       <button
-//         type="submit"
-//         className="w-full py-4 bg-gradient-to-r from-blue-400 to-purple-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] flex items-center justify-center space-x-2"
-//       >
-//         <FiUpload className="w-5 h-5" />
-//         <span>Publish to Nostr</span>
-//       </button>
-
-//       {/* Success Animation (Hidden by default) */}
-//       <div className="hidden items-center justify-center space-x-2 text-green-500">
-//         <FiCheck className="w-6 h-6" />
-//         <span className="font-semibold">Posted successfully!</span>
-//       </div>
-//     </form>
-//   );
-// };
-
-// const CreateItemPage = () => (
-//   <Page>
-//     <Section>
-//       <div className="text-center mb-8">
-//         <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent">
-//           Craft Your Story
-//         </h2>
-//         <p className="mt-3 text-zinc-600 dark:text-zinc-300 max-w-md mx-auto">
-//           Share your moments with the world through Nostr's decentralized network. 
-//           Your story matters! 🌍✨
-//         </p>
-//       </div>
-//     </Section>
-    
-//     <div className="p-4 max-w-2xl mx-auto">
-//       <div className="bg-white dark:bg-zinc-800 rounded-3xl shadow-xl p-6 md:p-8">
-//         <CreatePostForm />
-//       </div>
-//     </div>
-//   </Page>
-// );
-
-// export default CreateItemPage;

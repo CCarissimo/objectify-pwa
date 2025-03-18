@@ -8,7 +8,7 @@ import { bytesToHex, hexToBytes } from '@noble/hashes/utils' // already an insta
 const Index = () => {
   const { relayUrls, setRelayUrls } = useContext(RelayContext);
   const { keys, activeKeyId, addKey, removeKey, setActiveKey, generateNewKey } = useContext(KeyContext);
-  
+
   const [newRelayUrl, setNewRelayUrl] = useState('');
   const [newPrivateKey, setNewPrivateKey] = useState('');
   const [newKeyName, setNewKeyName] = useState('');
@@ -147,7 +147,7 @@ const Index = () => {
                   </div>
                   {showPrivateKey === key.id && (
                     <div className='mt-2 p-2 bg-zinc-200 dark:bg-zinc-700 rounded overflow-x-auto'>
-                      <code className='text-xs text-zinc-800 dark:text-zinc-200'>{key.privateKey}</code>
+                      <code className='text-xs text-zinc-800 dark:text-zinc-200'>{key.nsec}</code>
                     </div>
                   )}
                 </li>

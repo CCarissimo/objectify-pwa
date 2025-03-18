@@ -6,12 +6,15 @@ import { createContext, useState, useEffect } from 'react';
 import { generateSecretKey, getPublicKey } from 'nostr-tools/pure'
 import * as nip19 from 'nostr-tools/nip19'
 import { useNDK } from '@nostr-dev-kit/ndk-react';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils' // already an installed dependency
+
 
 // Interface for stored keys
 interface StoredKey {
   id: string;
   name: string;
-  privateKey: string;
+  privateKey: Uint8Array;
+  nsec: string;
 }
 
 // Create contexts for relay and key management
@@ -134,14 +137,15 @@ export default function App({ Component, pageProps }: AppProps) {
   };
 
   // Function to add a new key
-  const addKey = (privateKey: string, name?: string) => {
+  const addKey = (privateKey: Uint8Array, nsec: string, name?: string) => {
     const id = Date.now().toString();
     const keyName = name || `Key ${keys.length + 1}`;
     
     const newKey: StoredKey = {
       id,
       name: keyName,
-      privateKey
+      privateKey,
+      nsec,
     };
     
     setKeys(prevKeys => [...prevKeys, newKey]);
@@ -168,7 +172,9 @@ export default function App({ Component, pageProps }: AppProps) {
     const newPrivateKey = generateRandomKey();
 	  const publicKey = getPublicKey(newPrivateKey);
     let nsec = nip19.nsecEncode(newPrivateKey);
-    addKey(nsec, publicKey);
+    let skHex = bytesToHex(newPrivateKey)
+    // let backToBytes = hexToBytes(skHex)
+    addKey(skHex, nsec, publicKey);
   };
 
   // Get the active private key for the NDK provider
