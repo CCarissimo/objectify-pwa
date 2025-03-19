@@ -45,13 +45,16 @@ interface NostrEvent {
 
 const CreateListing = () => {
   const { keys, activeKeyId } = useContext(KeyContext);
+
   // Get active key
   const activeKey = keys.find(k => k.id === activeKeyId);
-  if (!activeKey) {
-    throw new Error('No active key selected. Please select a key before publishing.');
-  };
-
-  const sampleTags = ["freezer", "give-away", "unknown"];
+  
+  // Set the default tags 
+  const sampleTags = [
+    "freezer", 
+    "give-away", 
+    "unknown"
+  ];
 
   // State for the form data
   const [formData, setFormData] = useState<ListingFormData>({
@@ -202,7 +205,7 @@ const CreateListing = () => {
       console.log(activeKey.nsec);
       console.log(activeKey.privateKey)
       // let { type, sk } = nip19.decode(activeKey.nsec)
-      let sk = activeKey.privateKey
+      let sk = activeKey.privateKeyHex
       console.log(sk)
       
       let newEvent: NostrEvent = {
@@ -219,6 +222,7 @@ const CreateListing = () => {
         ['published_at', Math.floor(Date.now() / 1000).toString()],
         ['summary', formData.summary],
         ['location', formData.location],
+        ['nickname', activeKey.name],
       ];
       
       // Add price tag
@@ -273,9 +277,6 @@ const CreateListing = () => {
       } 
 
       setSuccess(true);
-      
-      // Optional: Navigate to a success page or listing detail
-      // setTimeout(() => router.push('/listings'), 2000);
       
     } catch (err) {
       console.error('Error publishing event:', err);
@@ -620,7 +621,7 @@ const CreateListing = () => {
             <div className='mt-2'>
               {keys.length === 0 ? (
                 <p className='text-red-500 dark:text-red-400'>
-                  No keys available. Please add a key in the Home page before publishing.
+                  No keys available. Please add a key in the Settings page before publishing.
                 </p>
               ) : activeKeyId ? (
                 <div>
@@ -630,7 +631,7 @@ const CreateListing = () => {
                 </div>
               ) : (
                 <p className='text-yellow-500 dark:text-yellow-400'>
-                  Please select an active key on the Home page before publishing.
+                  Please select an active key on the Settings before publishing.
                 </p>
               )}
             </div>

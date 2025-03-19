@@ -7,7 +7,7 @@ import { bytesToHex, hexToBytes } from '@noble/hashes/utils' // already an insta
 
 const Index = () => {
   const { relayUrls, setRelayUrls } = useContext(RelayContext);
-  const { keys, activeKeyId, addKey, removeKey, setActiveKey, generateNewKey } = useContext(KeyContext);
+  const { keys, activeKeyId, addKey, removeKey, setActiveKey, generateRandomKey } = useContext(KeyContext);
 
   const [newRelayUrl, setNewRelayUrl] = useState('');
   const [newPrivateKey, setNewPrivateKey] = useState('');
@@ -34,6 +34,18 @@ const Index = () => {
       setNewPrivateKey('');
       setNewKeyName('');
     }
+  };
+
+  // Function to generate a new private key
+  const generateNewKey = () => {
+    const sk = generateRandomKey();
+    // console.log(sk, "sk");
+    let skHex = bytesToHex(sk);
+    // console.log(skHex, "skHex");
+
+    addKey(sk, skHex, newKeyName || undefined);
+    setNewPrivateKey('');
+    setNewKeyName('');
   };
 
   // Function to toggle visibility of a private key

@@ -32,6 +32,14 @@ const EventCard = ({ event }) => {
           ))}
       </div>
 
+      <div className="flex justify-between items-center mt-3">
+        {event.tags
+            .filter((tag) => tag[0] === 'nickname')
+            .map((tag, index) => (
+              <TagRenderer key={index} tag={tag} />
+            ))}
+      </div>
+
       {/* Reveal additional information on click */}
       {isExpanded && (
         <div className="mt-4 space-y-2 text-xs text-gray-500 dark:text-gray-400">

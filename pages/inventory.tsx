@@ -9,8 +9,6 @@ const Inventory = () => {
 	const { keys, activeKeyId } = useContext(KeyContext);
 	// Get active key
 	const activeKey = keys.find(k => k.id === activeKeyId);
-	console.log("activeKey")
-	console.log(activeKey.name)
 
 	return (
 		<Page>
@@ -19,7 +17,20 @@ const Inventory = () => {
 					Personal Inventory
 				</h2>
 			</Section> */}
-			<DisplayEvents authors={[activeKey.name]} />
+			{
+				activeKey? (<DisplayEvents authors={[activeKey.publicKey]} />) 
+				: (
+					<Section>
+						<h2 className='text-xl font-semibold text-zinc-800 dark:text-zinc-200'>
+							No active key
+						</h2>
+						<div className='mt-2'>
+							<p className='text-zinc-600 dark:text-zinc-400'>
+								Set a key in Settings to your Inventory
+							</p>
+						</div>
+					</Section>
+				)}
 		</Page>
 	);
 }

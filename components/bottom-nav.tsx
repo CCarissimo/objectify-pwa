@@ -34,7 +34,7 @@ export default BottomNav
 
 const links = [
 	{
-		label: 'Home',
+		label: 'Settings',
 		href: '/',
 		icon: (
 			<svg
@@ -52,8 +52,26 @@ const links = [
 		),
 	},
 	{
-		label: 'Story',
-		href: '/story',
+		label: 'Inventory',
+		href: '/inventory',
+		icon: (
+			<svg
+				viewBox='0 0 15 15'
+				fill='none'
+				xmlns='http://www.w3.org/2000/svg'
+				width='18'
+				height='18'
+			>
+				<path
+					d='M7.5 15V7m0 .5v3m0-3a4 4 0 00-4-4h-3v3a4 4 0 004 4h3m0-3h3a4 4 0 004-4v-3h-3a4 4 0 00-4 4v3zm0 0l4-4m-4 7l-4-4'
+					stroke='currentColor'
+				/>
+			</svg>
+		),
+	},
+	{
+		label: 'Create',
+		href: '/create',
 		icon: (
 			<svg
 				viewBox='0 0 15 15'
@@ -70,21 +88,20 @@ const links = [
 		),
 	},
 	{
-		label: 'Recipes',
-		href: '/recipes',
+		label: 'Browse',
+		href: '/browse',
 		icon: (
 			<svg
-				viewBox='0 0 15 15'
-				fill='none'
-				xmlns='http://www.w3.org/2000/svg'
-				width='18'
-				height='18'
+				viewBox="0 0 15 15"
+				fill="none"
+				xmlns="http://www.w3.org/2000/svg"
+				width="18"
+				height="18"
 			>
-				<path
-					d='M7.5 15V7m0 .5v3m0-3a4 4 0 00-4-4h-3v3a4 4 0 004 4h3m0-3h3a4 4 0 004-4v-3h-3a4 4 0 00-4 4v3zm0 0l4-4m-4 7l-4-4'
-					stroke='currentColor'
-				/>
+				<circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor"/>
+				<path d="M7.5 1C5 3 4 5 4 7.5S5 12 7.5 14M7.5 1c2.5 2 3.5 4 3.5 6.5S10 12 7.5 14M1 7.5h13" stroke="currentColor"/>
 			</svg>
+
 		),
 	},
 ]

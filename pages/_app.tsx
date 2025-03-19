@@ -7,6 +7,7 @@ import { generateSecretKey, getPublicKey } from 'nostr-tools/pure'
 import * as nip19 from 'nostr-tools/nip19'
 import { useNDK } from '@nostr-dev-kit/ndk-react';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils' // already an installed dependency
+import { Hexpubkey } from '@nostr-dev-kit/ndk';
 
 
 // Interface for stored keys
@@ -14,7 +15,10 @@ interface StoredKey {
   id: string;
   name: string;
   privateKey: Uint8Array;
+  privateKeyHex: string;
+  publicKey: string;
   nsec: string;
+  npub: string;
 }
 
 // Create contexts for relay and key management
@@ -32,14 +36,14 @@ export const KeyContext = createContext<{
   addKey: (key: string, name?: string) => void;
   removeKey: (id: string) => void;
   setActiveKey: (id: string | null) => void;
-  generateNewKey: () => void;
+  generateRandomKey: () => Uint8Array;
 }>({
   keys: [],
   activeKeyId: null,
   addKey: () => {},
   removeKey: () => {},
   setActiveKey: () => {},
-  generateNewKey: () => {},
+  generateRandomKey: () => {},
 });
 
 // Default relay URLs to use if none are found in localStorage
@@ -50,8 +54,7 @@ const DEFAULT_RELAY_URLS = [
   "wss://nostr.wine"
 ];
 
-// Function to generate a random hex string (simulating a private key)
-// In a real app, you would use a proper Nostr library for this
+// Function to generate a random nostr secret key
 const generateRandomKey = () => {
 	let sk = generateSecretKey() // `sk` is a Uint8Array
   return sk;
@@ -66,10 +69,6 @@ export default function App({ Component, pageProps }: AppProps) {
   const [keys, setKeys] = useState<StoredKey[]>([]);
   const [activeKeyId, setActiveKeyId] = useState<string | null>(null);
   const [isKeysLoaded, setIsKeysLoaded] = useState(false);
-
-  // Get Signer from ndk 
-  // const { loginWithSecret } = useNDK();
-  // const user = await loginWithSecret(activeKey?.privateKey);
 
   // Load saved relay URLs from localStorage on initial render
   useEffect(() => {
@@ -137,15 +136,22 @@ export default function App({ Component, pageProps }: AppProps) {
   };
 
   // Function to add a new key
-  const addKey = (privateKey: Uint8Array, nsec: string, name?: string) => {
+  const addKey = (privateKey: Uint8Array, privateKeyHex: string , nickname: string) => {
+    // console.log(privateKey)
+    // console.log(nickname)
+    const publicKey = getPublicKey(privateKey);
+    let nsec = nip19.nsecEncode(privateKey);
+    let npub = nip19.npubEncode(publicKey);
     const id = Date.now().toString();
-    const keyName = name || `Key ${keys.length + 1}`;
     
     const newKey: StoredKey = {
       id,
-      name: keyName,
+      name: nickname,
       privateKey,
+      privateKeyHex,
+      publicKey,
       nsec,
+      npub,
     };
     
     setKeys(prevKeys => [...prevKeys, newKey]);
@@ -174,7 +180,8 @@ export default function App({ Component, pageProps }: AppProps) {
     let nsec = nip19.nsecEncode(newPrivateKey);
     let skHex = bytesToHex(newPrivateKey)
     // let backToBytes = hexToBytes(skHex)
-    addKey(skHex, nsec, publicKey);
+    
+    // addKey(skHex, nsec, publicKey, nickname);
   };
 
   // Get the active private key for the NDK provider
@@ -199,7 +206,7 @@ export default function App({ Component, pageProps }: AppProps) {
           addKey,
           removeKey,
           setActiveKey: setActiveKeyId,
-          generateNewKey
+          generateRandomKey
         }}>
           {isLoaded && (
             <NDKProvider 
