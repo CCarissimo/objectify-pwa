@@ -61,12 +61,11 @@ const Index = () => {
     <Page>
       <Section>
         <h2 className='text-xl font-semibold text-zinc-800 dark:text-zinc-200'>
-          Welcome to Objectify
+          Welcome to Objectify!
         </h2>
-
         <div className='mt-2'>
           <p className='text-zinc-600 dark:text-zinc-400'>
-            This is an open source project designed to allow a decentralized and permissionless exchange of objects.         
+            This is an open source project tool to allow a decentralized exchange of objects.         
           </p>
         </div>
       </Section>
@@ -74,28 +73,41 @@ const Index = () => {
       {/* Key Management Section */}
       <Section>
         <h3 className='text-lg font-semibold text-zinc-800 dark:text-zinc-200'>
-          Private Key Management
+          Profile Management
         </h3>
-        
+        <div className='mt-2'>
+          <p className='text-zinc-600 dark:text-zinc-400'>
+            Creating a profile is simple: set a nickname, and generate a new key!        
+          </p>
+        </div>
         {/* Add a new private key */}
         <div className='mt-4'>
-          <h4 className='text-md font-semibold text-zinc-800 dark:text-zinc-200'>
-            Add a Private Key:
-          </h4>
+          {/* <h4 className='text-md font-semibold text-zinc-800 dark:text-zinc-200'>
+            Create a new Profile:
+          </h4> */}
           <div className='mt-2 grid gap-2'>
             <input 
               type="text" 
               value={newKeyName}
               onChange={(e) => setNewKeyName(e.target.value)}
-              placeholder="Key Name (optional)"
+              placeholder="Nickname for your profile"
               className="w-full p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700"
             />
+            <button 
+              onClick={generateNewKey}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+              Generate New Key
+            </button>
+            <p className='text-zinc-600 dark:text-zinc-400'>
+              or add an existing private key:
+            </p>
             <div className='flex gap-2'>
               <input 
                 type="password" 
                 value={newPrivateKey}
                 onChange={(e) => setNewPrivateKey(e.target.value)}
-                placeholder="Enter private key"
+                placeholder="Enter exisitng private key (optional)"
                 className="flex-grow p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700"
               />
               <button 
@@ -106,20 +118,17 @@ const Index = () => {
                 Add
               </button>
             </div>
-            <button 
-              onClick={generateNewKey}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            >
-              Generate New Key
-            </button>
           </div>
         </div>
         
         {/* List and select from available keys */}
         <div className='mt-6'>
           <h4 className='text-md font-semibold text-zinc-800 dark:text-zinc-200'>
-            Your Keys:
+            Your keys on this device:
           </h4>
+            <p className='text-zinc-600 dark:text-zinc-400'>
+            You can add multiple profiles and switch between them as needed.
+            </p>
           {keys.length === 0 ? (
             <p className='mt-2 text-zinc-600 dark:text-zinc-400'>
               No keys added yet. Add or generate a key to get started.
@@ -166,17 +175,20 @@ const Index = () => {
               ))}
             </ul>
           )}
+          <p className='text-zinc-600 dark:text-zinc-400'>
+            Your keys are stored on your device. If you switch browser, or device, you will need to add your keys again.
+          </p>
         </div>
       </Section>
 
       {/* Relay management section */}
-      <Section>
-        <h3 className='text-lg font-semibold text-zinc-800 dark:text-zinc-200'>
+      {/* <Section> */}
+        {/* <h3 className='text-lg font-semibold text-zinc-800 dark:text-zinc-200'>
           Manage Relays
-        </h3>
+        </h3> */}
         
         {/* Add new relay */}
-        <div className='mt-2 flex gap-2'>
+        {/* <div className='mt-2 flex gap-2'>
           <input 
             type="text" 
             value={newRelayUrl}
@@ -190,10 +202,10 @@ const Index = () => {
           >
             Add
           </button>
-        </div>
+        </div> */}
 
         {/* Display current relays */}
-        <div className='mt-4'>
+        {/* <div className='mt-4'>
           <h4 className='text-md font-semibold text-zinc-800 dark:text-zinc-200'>
             Connected Relays:
           </h4>
@@ -210,8 +222,8 @@ const Index = () => {
               </li>
             ))}
           </ul>
-        </div>
-      </Section>
+        </div> */}
+      {/* </Section> */}
     </Page>
   )
 }
