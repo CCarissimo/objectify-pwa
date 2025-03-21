@@ -47,102 +47,14 @@ const SwipeableCard = ({ event, active, onSwipe }) => {
             style={{
                 ...cardStyle,
                 touchAction: 'pan-y',
-                cursor: 'grab'
+                cursor: 'grab',
+                // width: 'fit-content',  // Adapt to the EventCard's width
+                // margin: '0 auto'       // Center the card horizontally
             }}
         >
             <EventCard event={event} />
         </div>
     );
 };
-
-// const EventCard = ({ event }) => {
-//     const createdAt = new Date(event.created_at * 1000).toLocaleString();
-  
-//     return (
-//       <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-lg p-6 space-y-4 hover:shadow-xl transition-shadow">
-//         {/* Event Content */}
-//         <div className="mb-3">
-//           <ReactMarkdown className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed">
-//             {event.content}
-//           </ReactMarkdown>
-//         </div>
-  
-//         {/* Event Timestamp */}
-//         <p className="text-gray-500 dark:text-gray-400 text-xs">
-//           <strong>Created:</strong> {createdAt}
-//         </p>
-  
-//         {/* Event Tags */}
-//         <div className="mt-3 flex flex-wrap gap-2">
-//           {event.tags.map((tag, index) => (
-//             <TagRenderer key={index} tag={tag} />
-//           ))}
-//         </div>
-//       </div>
-//     );
-//   };
-  
-//   const TagRenderer = ({ tag }) => {
-//     const tagKey = tag[0];
-//     const tagValue = tag[1];
-  
-//     if (tagKey === 'image') {
-//       return (
-//         <div className="w-full mt-2">
-//           <img
-//             src={tagValue}
-//             alt="Event"
-//             className="rounded-xl w-full h-48 object-cover shadow-md hover:shadow-lg transition-all"
-//           />
-//         </div>
-//       );
-//     }
-  
-//     return (
-//       <p className="text-xs text-gray-600 dark:text-gray-400 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-800 dark:to-purple-800 px-3 py-1 rounded-full shadow-sm">
-//         <strong className="text-blue-600 dark:text-blue-300">{tagKey}:</strong>{' '}
-//         {tag.slice(1).join(', ')}
-//       </p>
-//     );
-//   };
-
-// const EventCard = ({ event }) => {
-//     const createdAt = new Date(event.created_at * 1000).toLocaleString();
-
-//     return (
-//         <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-lg p-6 space-y-4 hover:shadow-xl transition-shadow">
-//             <div className="mb-3">
-//                 <ReactMarkdown className="text-gray-800 text-sm">{event.content}</ReactMarkdown>
-//             </div>
-//             <p className="text-gray-500 text-xs">
-//                 <strong>Created:</strong> {createdAt}
-//             </p>
-//             <div className="mt-3">
-//                 {event.tags.map((tag, index) => (
-//                     <TagRenderer key={index} tag={tag} />
-//                 ))}
-//             </div>
-//         </div>
-//     );
-// };
-
-// const TagRenderer = ({ tag }) => {
-//     const tagKey = tag[0];
-//     const tagValue = tag[1];
-
-//     if (tagKey === "image") {
-//         return (
-//             <div className="mt-2">
-//                 <img src={tagValue} alt="Event" className="rounded-xl w-full h-48 object-cover shadow-md hover:shadow-lg transition-all" />
-//             </div>
-//         );
-//     }
-
-//     return (
-//         <p className="text-gray-500 text-xs">
-//             <strong>{tagKey}:</strong> {tag.slice(1).join(", ")}
-//         </p>
-//     );
-// };
 
 export default SwipeableCard;

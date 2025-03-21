@@ -12,11 +12,6 @@ const Inventory = () => {
 
 	return (
 		<Page>
-			{/* <Section>
-				<h2 className='text-xl font-semibold text-zinc-800 dark:text-zinc-200'>
-					Personal Inventory
-				</h2>
-			</Section> */}
 			{
 				activeKey? (<DisplayEvents authors={[activeKey.publicKey]} />) 
 				: (

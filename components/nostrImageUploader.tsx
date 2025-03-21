@@ -11,29 +11,6 @@ interface NostrImageUploaderProps {
   onComplete: (success: boolean, data?: any, error?: string) => void;
 }
 
-// Define the type for tags (arrays of strings)
-type Tag = string[];
-
-// // Define the event interface
-// interface NostrEvent {
-//     kind: number;
-//     created_at: number;
-//     tags: Tag[];
-//     content: string;
-//   }
-
-// Supported upload servers
-const UPLOAD_SERVERS = [
-  {
-    name: 'nostr.download',
-    wellKnownUrl: 'https://nostr.download/.well-known/nostr/nip96.json'
-  },
-  {
-    name: 'blossom.primal.net',
-    wellKnownUrl: 'https://blossom.primal.net/.well-known/nostr/nip96.json'
-  }
-];
-
 // Main component
 const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({ 
   imageData, 
@@ -84,19 +61,7 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
   // Create NIP-98 authorization header
   const createNIP98AuthEvent = async (method: string, fileHash: string): Promise<NostrEvent> => {
     try {
-      // Import necessary functions for NIP-98 from nostr-tools
-      // This would typically be imported from a nostr library
-      // For this example, we'll create a placeholder
-      // const event: NostrEvent = {
-      //   kind: 27235, // NIP-98 authorization event kind
-      //   created_at: Math.floor(Date.now() / 1000),
-      //   tags: [
-      //     ["u", url],
-      //     ["method", method],
-      //   //   ["payload", fileHash]
-      //   ],
-      //   content: "",
-      // };
+
       const unixNow = () => Math.floor(Date.now() / 1000)
       const newExpirationValue = () => (unixNow() + 60 * 5).toString()
       const createdAt = Math.floor(Date.now() / 1000)
@@ -123,26 +88,6 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
     }
   };
 
-  // Fetch server configuration
-  const fetchServerConfig = async (serverIndex: number) => {
-    try {
-      const response = await fetch(UPLOAD_SERVERS[serverIndex].wellKnownUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch server config: ${response.statusText}`);
-      }
-      
-      const config = await response.json();
-      setSelectedServer({
-        ...UPLOAD_SERVERS[serverIndex],
-        config
-      });
-      return config;
-    } catch (error) {
-      console.error(`Error fetching server config for ${UPLOAD_SERVERS[serverIndex].name}:`, error);
-      throw error;
-    }
-  };
-
   // Upload the image
   const uploadImage = async () => {
     if (isUploading || !imageData) return;
@@ -151,15 +96,6 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
     setUploadStatus('Preparing image for upload...');
     
     try {
-      // // Try the first server by default
-      // console.log("fetching server config")
-      // const serverConfig = await fetchServerConfig(0);
-      
-      // // Get the upload URL from the server config
-      // const uploadUrl = serverConfig.api_url;
-      // if (!uploadUrl) {
-      //   throw new Error('No upload URL found in server configuration');
-      // }
       
       // Convert the image to a blob
       const blob = dataURItoBlob(imageData);
@@ -216,13 +152,6 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
 
       console.log('onComplete')
       onComplete(true, responseData, undefined);
-
-      // if (responseData.status === 200) {
-      //   setUploadStatus('Upload successful!');
-        
-      // } else {
-      //   throw new Error(responseData.message || 'Upload failed');
-      // }
 
     } catch (error) {
       console.error('Upload error:', error);
