@@ -4,16 +4,23 @@ import React, { useContext, useState, useEffect } from 'react';
 import CreateObject from '@/components/createObject';
 import { KeyContext } from './_app';
 
-
 const Create = () => {
+
+	// useEffect(() => {
+	// 	console.log(activeKey);
+	//   }, []);
+
 	const { keys, activeKeyId } = useContext(KeyContext);
-	// Get active key
 	const activeKey = keys.find(k => k.id === activeKeyId);
+
+	console.log("create something ")
 
 	return (
 		<Page>
 			{
-				activeKey? (<CreateObject/>) 
+				activeKey? (
+					<CreateObject/>
+				) 
 				: (
 					<Section>
 						<h2 className='text-xl font-semibold text-zinc-800 dark:text-zinc-200'>

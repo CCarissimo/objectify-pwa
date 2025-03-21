@@ -9,6 +9,7 @@ interface NostrImageUploaderProps {
   pubkey: string; // user's public key for authentication
   privateKey: Uint8Array; // user's private key for signing the upload request
   onComplete: (success: boolean, data?: any, error?: string) => void;
+  isComplete: boolean;
 }
 
 // Main component
@@ -16,12 +17,16 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
   imageData, 
   pubkey,
   privateKey,
-  onComplete 
+  onComplete,
+  isComplete
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [selectedServer, setSelectedServer] = useState<any>(null);
   const [blossomResponse, setBlossomResponse] = useState<string>('');
+
+  console.log("boolean from createObject")
+  console.log(isComplete)
 
   // Convert base64 to blob
   const dataURItoBlob = (dataURI: string): Blob => {
@@ -59,7 +64,7 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
   };
 
   // Create NIP-98 authorization header
-  const createNIP98AuthEvent = async (method: string, fileHash: string): Promise<NostrEvent> => {
+  const createNIP98AuthEvent = (method: string, fileHash: string) => {
     try {
 
       const unixNow = () => Math.floor(Date.now() / 1000)
@@ -90,10 +95,14 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
 
   // Upload the image
   const uploadImage = async () => {
-    if (isUploading || !imageData) return;
+    if (!imageData) {
+      console.log('no image data')
+      return
+    }
     
     setIsUploading(true);
     setUploadStatus('Preparing image for upload...');
+    console.log('Preparing image for upload...')
     
     try {
       
@@ -116,15 +125,15 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
       
       // Get auth header for NIP-98
       setUploadStatus('Creating authentication...');
-      const authEvent = await createNIP98AuthEvent('PUT', fileHash);
+      const authEvent = createNIP98AuthEvent('PUT', fileHash);
       
       // Sing AuthEvent
-      console.log(privateKey)
       let signedEvent = finalizeEvent(authEvent, privateKey);
       let isGood = verifyEvent(signedEvent);
-      console.log(signedEvent)
+      console.log("Auth Event Signed")
       console.log(isGood)
-
+      console.log(signedEvent)
+      
       // authEventSigned as base64 encoded string
       let authString = Buffer.from(JSON.stringify(signedEvent)).toString('base64')
 
@@ -147,10 +156,10 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
       }
       
       const responseData = await uploadResponse.json();
-      console.log(responseData.url)
       setBlossomResponse(responseData)
+      console.log(responseData.url)
 
-      console.log('onComplete')
+      console.log('uploadImage: onComplete')
       onComplete(true, responseData, undefined);
 
     } catch (error) {
@@ -158,18 +167,17 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
       setUploadStatus('Upload failed');
     } finally {
       setIsUploading(false);
-      console.log("success");
     }
   };
 
   // Start upload when component mounts
   useEffect(() => {
-    if (imageData && pubkey && privateKey) {
+    if (!isComplete && imageData && pubkey && privateKey) {
       uploadImage();
     } else {
       onComplete(false, undefined, 'Missing required data for upload');
     }
-  }, [imageData, pubkey, privateKey]);  // whenever these variables change use effect runs
+  }, [ ]);  // whenever these variables change use effect runs
 
   return (
     <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 mb-4" style={{ display: isUploading ? 'block' : 'none' }}>

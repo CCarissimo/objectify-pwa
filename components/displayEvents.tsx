@@ -27,7 +27,7 @@ const DisplayEvents: React.FC<DisplayEventsProps> = ({ authors }) => {
                     "wss://relay.nostr.band",
                     "wss://relay.damus.io",
                 ];
-                let kinds = [30402];
+                let kinds = [30502];
                 
                 let queryOptions = {
                     kinds: kinds,
@@ -36,6 +36,7 @@ const DisplayEvents: React.FC<DisplayEventsProps> = ({ authors }) => {
                 };
                 
                 let events = await pool.querySync(relays, queryOptions);
+                console.log(events)
                 setEvents(events);
                 setFilteredEvents(events);
             } catch (error) {

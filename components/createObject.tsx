@@ -156,17 +156,50 @@ const CreateObject = () => {
 
   // Add these state variables at the top of your component
   const [uploadInProgress, setUploadInProgress] = useState(false);
+  const [uploadIsComplete, setUploadIsComplete] = useState(false);
 
   // Add this function to handle the upload button click
   const handleUploadButtonClick = () => {
-    setUploadInProgress(true);
+    if (!uploadInProgress) {
+      setUploadInProgress(true);
+    }
   };
+
+  const [uploader, setUploader] = useState(<p>TEMPLATE</p>)
+
+  useEffect(() => {
+    console.log("Setting Uploader")
+    if (!capturedImage) return;
+    setUploader(<NostrImageUploader
+      imageData={capturedImage}
+      pubkey={activeKey.name}
+      privateKey={activeKey.privateKeyHex}
+      onComplete={handleUploadComplete}
+      isComplete={uploadIsComplete}
+    />)
+    
+  }, [ uploadInProgress]);  // whenever these variables change use effect runs
+
+  useEffect(() => {
+    if (uploadIsComplete) {
+      console.log("Reverting Uploader")
+      setUploader(<p>TEMPLATE</p>)
+    };
+    
+  }, [ uploadIsComplete]);  // whenever these variables change use effect runs
+
+  const Uploader = () => {
+    return uploader
+  }
+  
 
   // Add this handler for upload completion
   const handleUploadComplete = (success: boolean, data?: any, error?: string) => {
     setUploadInProgress(false);
+    setUploadIsComplete(true);
+    
     if (success) {
-      console.log("setting image to form data")
+      console.log("handleUploadComplete: setting image to form data")
       // Find the URL tag from the response
       const imageUrl = data.url;
       
@@ -187,11 +220,13 @@ const CreateObject = () => {
         }));
         console.log(formData)
       }
+
     } else {
       setUploadResult({
         success: false,
         message: error || 'Upload failed'
       });
+      
     }
   };
 
@@ -203,16 +238,13 @@ const CreateObject = () => {
     setSuccess(false);
     
     try {
+      console.log("createObject: handleSubmit");
 
-      console.log("active nsec");
-      console.log(activeKey.nsec);
-      console.log(activeKey.privateKey)
       // let { type, sk } = nip19.decode(activeKey.nsec)
       let sk = activeKey.privateKeyHex
-      console.log(sk)
       
       let newEvent: NostrEvent = {
-        kind: 30402,
+        kind: 30502,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: formData.content,
@@ -242,6 +274,8 @@ const CreateObject = () => {
         newEvent.tags.push(['t', tag]);
       });
       
+      console.log('handleSubmit formdata images')
+      console.log(formData.images)
       // Add images
       formData.images.forEach(image => {
         newEvent.tags.push(['image', image.url, image.dimensions]);
@@ -321,148 +355,152 @@ const CreateObject = () => {
         </div>
     )}
     
-    <form onSubmit={handleSubmit} className='mt-6 space-y-6'>
-        {/* Images */}
-        <div className='p-4 bg-zinc-100 dark:bg-zinc-800 rounded'>
-        <h3 className='text-md font-semibold text-zinc-800 dark:text-zinc-200'>
-            Images
-        </h3>
-        
-        <div className='mt-2 space-y-2'>
-            {/* <div className='flex gap-2'>
-            <input
-                type='text'
-                value={newImageUrl}
-                onChange={(e) => setNewImageUrl(e.target.value)}
-                className='flex-grow p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
-                placeholder='Image URL'
-            />
-            <input
-                type='text'
-                value={newImageDimensions}
-                onChange={(e) => setNewImageDimensions(e.target.value)}
-                className='w-32 p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
-                placeholder='Dimensions (e.g., 800x600)'
-            />
-            <button
-                type='button'
-                onClick={addImage}
-                className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
-            >
-                Add
-            </button>
-            </div> */}
-            
-            {/* <div className='mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4'>
-            {formData.images.map((image, index) => (
-                <div key={index} className='border rounded dark:border-zinc-700 overflow-hidden'>
-                <div className='aspect-w-16 aspect-h-9 bg-zinc-200 dark:bg-zinc-700 relative'>
-                    <img
-                    src={image.url}
-                    alt={`Listing image ${index + 1}`}
-                    className='object-cover w-full h-full'
-                    onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/300x200?text=Image+Error')}
-                    />
-                    <button
-                    type='button'
-                    onClick={() => removeImage(image.url)}
-                    className='absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600'
-                    >
-                    &times;
-                    </button>
-                </div>
-                <div className='p-2 text-sm text-zinc-600 dark:text-zinc-400'>
-                    Dimensions: {image.dimensions}
-                </div>
-                </div>
-            ))}
-            {formData.images.length === 0 && (
-                <div className='col-span-full text-zinc-500 dark:text-zinc-400 text-sm'>
-                No images added yet
-                </div>
-            )}
-            </div> */}
-            <div className="container mx-auto p-4">
+    {/* Images */}
+    <div className='p-4 bg-zinc-100 dark:bg-zinc-800 rounded'>
+      <h3 className='text-md font-semibold text-zinc-800 dark:text-zinc-200'>
+          Images
+      </h3>
+      
+      <div className='mt-2 space-y-2'>
+          {/* <div className='flex gap-2'>
+          <input
+              type='text'
+              value={newImageUrl}
+              onChange={(e) => setNewImageUrl(e.target.value)}
+              className='flex-grow p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
+              placeholder='Image URL'
+          />
+          <input
+              type='text'
+              value={newImageDimensions}
+              onChange={(e) => setNewImageDimensions(e.target.value)}
+              className='w-32 p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
+              placeholder='Dimensions (e.g., 800x600)'
+          />
+          <button
+              type='button'
+              onClick={addImage}
+              className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+          >
+              Add
+          </button>
+          </div> */}
+          
+          {/* <div className='mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4'>
+          {formData.images.map((image, index) => (
+              <div key={index} className='border rounded dark:border-zinc-700 overflow-hidden'>
+              <div className='aspect-w-16 aspect-h-9 bg-zinc-200 dark:bg-zinc-700 relative'>
+                  <img
+                  src={image.url}
+                  alt={`Listing image ${index + 1}`}
+                  className='object-cover w-full h-full'
+                  onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/300x200?text=Image+Error')}
+                  />
+                  <button
+                  type='button'
+                  onClick={() => removeImage(image.url)}
+                  className='absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600'
+                  >
+                  &times;
+                  </button>
+              </div>
+              <div className='p-2 text-sm text-zinc-600 dark:text-zinc-400'>
+                  Dimensions: {image.dimensions}
+              </div>
+              </div>
+          ))}
+          {formData.images.length === 0 && (
+              <div className='col-span-full text-zinc-500 dark:text-zinc-400 text-sm'>
+              No images added yet
+              </div>
+          )}
+          </div> */}
+          <div className="container mx-auto p-4">
             <h3 className="text-2xl font-bold mb-4">Upload Image</h3>
-            <CameraCapture onCapture={handleImageCapture} />
-            {capturedImage && (
-                <div className="mt-4">
-                <h4 className="text-xl mb-2">Captured Image:</h4>
-                <img 
-                    src={capturedImage} 
-                    alt="Captured" 
-                    className="max-w-full h-auto rounded border"
-                />
-                
-                {/* Add Upload button */}
-                <button 
-                    onClick={() => handleUploadButtonClick()} 
-                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                >
-                    Upload Image
-                </button>
-                
-                {/* Show upload result message */}
-                {uploadResult && (
-                    <div className={`mt-2 p-2 rounded ${uploadResult.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {uploadResult.message}
-                    {uploadResult.url && (
-                        <div className="mt-1 text-sm">
-                        <a href={uploadResult.url} target="_blank" rel="noopener noreferrer" className="underline">
-                            View uploaded image
-                        </a>
-                        </div>
-                    )}
-                    </div>
-                )}
-                </div>
-            )}
             
-            {/* NostrImageUploader is now hidden and only used when needed */}
-            {capturedImage && uploadInProgress && (
+              <CameraCapture onCapture={handleImageCapture} />
+              
+              {capturedImage && (
+                  <div className="mt-4">
+                    <h4 className="text-xl mb-2">Captured Image:</h4>
+                    <img 
+                        src={capturedImage} 
+                        alt="Captured" 
+                        className="max-w-full h-auto rounded border"
+                    />
+                    
+                    {/* Add Upload button */}
+                    <button 
+                        onClick={() => handleUploadButtonClick()} 
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    >
+                        Upload Image
+                    </button>
+                  </div>
+                )}
+
+              {/* Show upload result message */}
+              {uploadResult && (
+                      <div className={`mt-2 p-2 rounded ${uploadResult.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {uploadResult.message}
+                      {uploadResult.url && (
+                          <div className="mt-1 text-sm">
+                          <a href={uploadResult.url} target="_blank" rel="noopener noreferrer" className="underline">
+                              View uploaded image
+                          </a>
+                          </div>
+                      )}
+                      </div>
+                  )}
+          </div>
+      </div>
+    </div>
+
+      {/* NostrImageUploader is now hidden and only used when needed */}
+      {/* {capturedImage && uploadInProgress && (
                 <NostrImageUploader
-                imageData={capturedImage}
-                pubkey={activeKey.name}
-                privateKey={activeKey.privateKeyHex}
-                onComplete={handleUploadComplete}
+                  imageData={capturedImage}
+                  pubkey={activeKey.name}
+                  privateKey={activeKey.privateKeyHex}
+                  onComplete={handleUploadComplete}
+                  isComplete={uploadIsComplete}
                 />
             )}
-            </div>
-        </div>
-        </div>
-        
+ */}
+ {Uploader()}
+    <form onSubmit={handleSubmit} className='mt-6 space-y-6'>
         {/* Basic Information */}
         <div className='space-y-4'>
-        <div>
-            <label htmlFor='title' className='block text-sm font-medium text-zinc-700 dark:text-zinc-300'>
-            Title
-            </label>
-            <input
-            type='text'
-            id='title'
-            name='title'
-            value={formData.title}
-            onChange={handleChange}
-            required
-            className='mt-1 block w-full p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
-            placeholder='What are you listing?'
-            />
-        </div>
-        
-        <div>
-            <label htmlFor='location' className='block text-sm font-medium text-zinc-700 dark:text-zinc-300'>
-            Location
-            </label>
-            <input
-            type='text'
-            id='location'
-            name='location'
-            value={formData.location}
-            onChange={handleChange}
-            className='mt-1 block w-full p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
-            placeholder='Paradies, 8001'
-            />
-        </div>
+          <div>
+              <label htmlFor='title' className='block text-sm font-medium text-zinc-700 dark:text-zinc-300'>
+              Title
+              </label>
+              <input
+              type='text'
+              id='title'
+              name='title'
+              value={formData.title}
+              onChange={handleChange}
+              required
+              className='mt-1 block w-full p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
+              placeholder='What are you listing?'
+              />
+          </div>
+          
+          <div>
+              <label htmlFor='location' className='block text-sm font-medium text-zinc-700 dark:text-zinc-300'>
+              Location
+              </label>
+              <input
+              type='text'
+              id='location'
+              name='location'
+              value={formData.location}
+              onChange={handleChange}
+              className='mt-1 block w-full p-2 border rounded dark:bg-zinc-800 dark:border-zinc-700'
+              placeholder='Paradies, 8001'
+              />
+          </div>
         </div>
         
         {/* Tags */}

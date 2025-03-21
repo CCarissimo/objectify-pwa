@@ -45,7 +45,6 @@ export const KeyContext = createContext<{
   setActiveKey: () => {},
   generateRandomKey: () => {},
 });
-
 // Default relay URLs to use if none are found in localStorage
 const DEFAULT_RELAY_URLS = [
   "wss://relay.damus.io",
@@ -199,7 +198,7 @@ export default function App({ Component, pageProps }: AppProps) {
       defaultTheme='system'
       disableTransitionOnChange
     >
-      <RelayContext.Provider value={{ relayUrls, setRelayUrls: updateRelayUrls }}>
+      {/* <RelayContext.Provider value={{ relayUrls, setRelayUrls: updateRelayUrls }}> */}
         <KeyContext.Provider value={{
           keys,
           activeKeyId,
@@ -216,7 +215,7 @@ export default function App({ Component, pageProps }: AppProps) {
             </NDKProvider>
           )}
         </KeyContext.Provider>
-      </RelayContext.Provider>
+      {/* </RelayContext.Provider> */}
     </ThemeProvider>
   )
 }
