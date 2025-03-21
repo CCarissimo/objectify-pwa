@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { finalizeEvent, verifyEvent } from 'nostr-tools/pure';
 import { nip19, type NostrEvent } from "nostr-tools"
 
@@ -20,12 +20,12 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
   onComplete,
   isComplete
 }) => {
-  const [isUploading, setIsUploading] = useState(false);
+  let isUploading = useRef(false);
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [selectedServer, setSelectedServer] = useState<any>(null);
   const [blossomResponse, setBlossomResponse] = useState<string>('');
 
-  console.log("boolean from createObject")
+  console.log("isComplete: boolean from createObject")
   console.log(isComplete)
 
   // Convert base64 to blob
@@ -100,8 +100,8 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
       return
     }
     
-    setIsUploading(true);
-    setUploadStatus('Preparing image for upload...');
+    isUploading.current = true;
+    // setUploadStatus('Preparing image for upload...');
     console.log('Preparing image for upload...')
     
     try {
@@ -124,7 +124,7 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
       formData.append('size', file.size.toString());
       
       // Get auth header for NIP-98
-      setUploadStatus('Creating authentication...');
+      // setUploadStatus('Creating authentication...');
       const authEvent = createNIP98AuthEvent('PUT', fileHash);
       
       // Sing AuthEvent
@@ -141,7 +141,7 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
       const blossomServer = "https://" + "blossom.primal.net" + "/upload"
 
       // Upload the file
-      setUploadStatus('Uploading image...');
+      // setUploadStatus('Uploading image...');
       const uploadResponse = await fetch(blossomServer, {
         method: 'PUT',
         headers: { authorization: "Nostr " + authString },
@@ -164,9 +164,9 @@ const NostrImageUploader: React.FC<NostrImageUploaderProps> = ({
 
     } catch (error) {
       console.error('Upload error:', error);
-      setUploadStatus('Upload failed');
+      // setUploadStatus('Upload failed');
     } finally {
-      setIsUploading(false);
+      isUploading.current = false;
     }
   };
 

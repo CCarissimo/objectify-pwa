@@ -1,6 +1,6 @@
 import Page from '@/components/page'
 import Section from '@/components/section'
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { KeyContext } from '@/pages/_app';
 import { finalizeEvent, verifyEvent } from 'nostr-tools/pure';
 import { SimplePool } from 'nostr-tools/pool';
@@ -38,9 +38,8 @@ interface NostrEvent {
 }
 
 const CreateObject = () => {
+  
   const { keys, activeKeyId } = useContext(KeyContext);
-
-  // Get active key
   const activeKey = keys.find(k => k.id === activeKeyId);
   
   // Set the default tags 
@@ -68,10 +67,13 @@ const CreateObject = () => {
   const [newTag, setNewTag] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newImageDimensions, setNewImageDimensions] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
   const [eventId, setEventId] = useState<string | null>(null);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   // For tag input handling
   const addTag = (tag) => {
@@ -178,7 +180,7 @@ const CreateObject = () => {
       isComplete={uploadIsComplete}
     />)
     
-  }, [ uploadInProgress]);  // whenever these variables change use effect runs
+  }, [ uploadInProgress ]);  // whenever these variables change use effect runs
 
   useEffect(() => {
     if (uploadIsComplete) {
@@ -195,6 +197,7 @@ const CreateObject = () => {
 
   // Add this handler for upload completion
   const handleUploadComplete = (success: boolean, data?: any, error?: string) => {
+
     setUploadInProgress(false);
     setUploadIsComplete(true);
     

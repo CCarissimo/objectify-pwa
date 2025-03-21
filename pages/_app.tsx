@@ -45,6 +45,7 @@ export const KeyContext = createContext<{
   setActiveKey: () => {},
   generateRandomKey: () => {},
 });
+
 // Default relay URLs to use if none are found in localStorage
 const DEFAULT_RELAY_URLS = [
   "wss://relay.damus.io",
@@ -60,29 +61,35 @@ const generateRandomKey = () => {
 };
 
 export default function App({ Component, pageProps }: AppProps) {
+
+  console.log("Running _App")
+  
   // Initialize relay state
-  const [relayUrls, setRelayUrls] = useState<string[]>([]);
-  const [isRelaysLoaded, setIsRelaysLoaded] = useState(false);
+  // const [relayUrls, setRelayUrls] = useState<string[]>([]);
+  // const [isRelaysLoaded, setIsRelaysLoaded] = useState(false);
   
   // Initialize key management state
   const [keys, setKeys] = useState<StoredKey[]>([]);
   const [activeKeyId, setActiveKeyId] = useState<string | null>(null);
   const [isKeysLoaded, setIsKeysLoaded] = useState(false);
 
+  console.log("isKeysLoaded")
+  console.log(isKeysLoaded)
+
   // Load saved relay URLs from localStorage on initial render
-  useEffect(() => {
-    try {
-      const savedRelays = localStorage.getItem('relayUrls');
-      // Use saved relays if available, otherwise use defaults
-      const initialRelays = savedRelays ? JSON.parse(savedRelays) : DEFAULT_RELAY_URLS;
-      setRelayUrls(initialRelays);
-    } catch (error) {
-      // Fallback to defaults if there's an error
-      console.error("Error loading saved relays:", error);
-      setRelayUrls(DEFAULT_RELAY_URLS);
-    }
-    setIsRelaysLoaded(true);
-  }, []);
+  // useEffect(() => {
+  //   try {
+  //     const savedRelays = localStorage.getItem('relayUrls');
+  //     // Use saved relays if available, otherwise use defaults
+  //     const initialRelays = savedRelays ? JSON.parse(savedRelays) : DEFAULT_RELAY_URLS;
+  //     setRelayUrls(initialRelays);
+  //   } catch (error) {
+  //     // Fallback to defaults if there's an error
+  //     console.error("Error loading saved relays:", error);
+  //     setRelayUrls(DEFAULT_RELAY_URLS);
+  //   }
+  //   setIsRelaysLoaded(true);
+  // }, []);
 
   // Load saved keys from localStorage on initial render
   useEffect(() => {
@@ -90,17 +97,17 @@ export default function App({ Component, pageProps }: AppProps) {
       const savedKeys = localStorage.getItem('storedKeys');
       const activeKey = localStorage.getItem('activeKeyId');
       
-      console.log(JSON.parse(savedKeys))
-      console.log(activeKey)
+      // console.log(JSON.parse(savedKeys))
+      // console.log(activeKey)
       if (savedKeys) {
         setKeys(JSON.parse(savedKeys));
-        console.log("saved keys")
-        console.log(keys)
+        // console.log("saved keys")
+        // console.log(keys)
       }
       if (activeKey) {
         setActiveKeyId(activeKey);
-        console.log("active key true")
-        console.log(activeKeyId);
+        // console.log("active key true")
+        // console.log(activeKeyId);
       }
     } catch (error) {
       console.error("Error loading saved keys:", error);
@@ -109,11 +116,11 @@ export default function App({ Component, pageProps }: AppProps) {
   }, []);
 
   // Save relay URLs to localStorage whenever they change
-  useEffect(() => {
-    if (isRelaysLoaded && relayUrls.length > 0) {
-      localStorage.setItem('relayUrls', JSON.stringify(relayUrls));
-    }
-  }, [relayUrls, isRelaysLoaded]);
+  // useEffect(() => {
+  //   if (isRelaysLoaded && relayUrls.length > 0) {
+  //     localStorage.setItem('relayUrls', JSON.stringify(relayUrls));
+  //   }
+  // }, [relayUrls, isRelaysLoaded]);
 
   // Save keys to localStorage whenever they change
   useEffect(() => {
@@ -129,10 +136,10 @@ export default function App({ Component, pageProps }: AppProps) {
     }
   }, [activeKeyId, isKeysLoaded]);
 
-  // Custom function to update relay URLs
-  const updateRelayUrls = (newUrls: string[]) => {
-    setRelayUrls(newUrls);
-  };
+  // // Custom function to update relay URLs
+  // const updateRelayUrls = (newUrls: string[]) => {
+  //   setRelayUrls(newUrls);
+  // };
 
   // Function to add a new key
   const addKey = (privateKey: Uint8Array, privateKeyHex: string , nickname: string) => {
@@ -190,7 +197,7 @@ export default function App({ Component, pageProps }: AppProps) {
     return activeKey?.privateKey;
   };
 
-  const isLoaded = isRelaysLoaded && isKeysLoaded;
+  const isLoaded =  isKeysLoaded;
 
   return (
     <ThemeProvider
@@ -208,11 +215,7 @@ export default function App({ Component, pageProps }: AppProps) {
           generateRandomKey
         }}>
           {isLoaded && (
-            <NDKProvider 
-              relayUrls={relayUrls}
-            >
-              <Component {...pageProps} />
-            </NDKProvider>
+            <Component {...pageProps} />
           )}
         </KeyContext.Provider>
       {/* </RelayContext.Provider> */}
