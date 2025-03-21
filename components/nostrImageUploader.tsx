@@ -7,7 +7,7 @@ import { nip19, type NostrEvent } from "nostr-tools"
 interface NostrImageUploaderProps {
   imageData: string; // base64 image data from camera capture
   pubkey: string; // user's public key for authentication
-  privateKey: Uint8Array; // user's private key for signing the upload request
+  privateKey: string; // user's private key for signing the upload request
   onComplete: (success: boolean, data?: any, error?: string) => void;
   isComplete: boolean;
 }

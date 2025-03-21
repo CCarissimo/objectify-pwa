@@ -1,37 +1,36 @@
 import React, { useRef, useState, useEffect } from 'react';
 
 interface CameraCaptureProps {
-  onCapture: (imageData: string) => void;
+  onCapture: (imageDataUrl: string) => void;
 }
 
 const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture }) => {
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const [hasPermission, setHasPermission] = useState(null);
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const [availableCameras, setAvailableCameras] = useState([]);
-  const [selectedCamera, setSelectedCamera] = useState('');
-  const [error, setError] = useState(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | undefined>(undefined);
+  const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCamera, setSelectedCamera] = useState<string>('');
+  const [error, setError] = useState<string>('');
 
   // Initialize camera when component mounts
   useEffect(() => {
-    // Check if we're in a browser environment and if the API is available
-    if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      // Get list of available cameras
-      async function getDevices() {
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
+      const getDevices = async () => {
         try {
           const devices = await navigator.mediaDevices.enumerateDevices();
           const videoDevices = devices.filter(device => device.kind === 'videoinput');
           setAvailableCameras(videoDevices);
-          
+
           if (videoDevices.length > 0) {
             setSelectedCamera(videoDevices[0].deviceId);
           }
         } catch (err) {
-          setError('Failed to enumerate devices: ' + err.message);
+          setError('Failed to enumerate devices');
+          console.error(err);
         }
-      }
-      
+      };
+
       getDevices();
     } else {
       setError('Camera access is not supported in this browser or environment');
@@ -41,24 +40,25 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture }) => {
   // Start camera when user clicks the button
   const startCamera = async () => {
     try {
-      const constraints = {
+      const constraints: MediaStreamConstraints = {
         video: {
           deviceId: selectedCamera ? { exact: selectedCamera } : undefined,
-          facingMode: 'environment', // Prefer back camera if available
+          facingMode: 'environment',
           width: { ideal: 1280 },
           height: { ideal: 720 }
         }
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         setIsCameraActive(true);
         setHasPermission(true);
       }
     } catch (err) {
-      setError('Error accessing camera: ' + err.message);
+      setError('Error accessing camera');
+      console.error(err);
       setHasPermission(false);
     }
   };
@@ -66,8 +66,8 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture }) => {
   // Stop the camera stream
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = videoRef.current.srcObject.getTracks();
-      tracks.forEach(track => track.stop());
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
       setIsCameraActive(false);
     }
@@ -76,32 +76,34 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture }) => {
   // Take a picture
   const takePicture = () => {
     if (videoRef.current && canvasRef.current) {
-      const context = canvasRef.current.getContext('2d');
+      const context = canvasRef.current.getContext('2d') as CanvasRenderingContext2D | null;
+      if (!context) return;
+
       const { videoWidth, videoHeight } = videoRef.current;
-      
+
       // Set canvas dimensions to match video
       canvasRef.current.width = videoWidth;
       canvasRef.current.height = videoHeight;
-      
+
       // Draw video frame to canvas
       context.drawImage(videoRef.current, 0, 0, videoWidth, videoHeight);
-      
+
       // Convert canvas to data URL
       const imageDataUrl = canvasRef.current.toDataURL('image/jpeg');
-      
+
       // Call the callback with the image data
       onCapture(imageDataUrl);
-      
+
       // Stop camera after capture (optional)
       // stopCamera();
     }
   };
 
   // Switch camera
-  const handleCameraChange = (e) => {
+  const handleCameraChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCameraId = e.target.value;
     setSelectedCamera(newCameraId);
-    
+
     if (isCameraActive) {
       stopCamera();
       setTimeout(() => {
@@ -112,10 +114,10 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture }) => {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      {error && <div className="p-4 bg-red-100 text-red-800 rounded">{error}</div>}
+       {error && <div className="p-4 bg-red-100 text-red-800 rounded">{error}</div>}
       
-      {/* Camera selection dropdown */}
-      {availableCameras.length > 1 && (
+       Camera selection dropdown
+       {availableCameras.length > 1 && (
         <select 
           value={selectedCamera} 
           onChange={handleCameraChange}
